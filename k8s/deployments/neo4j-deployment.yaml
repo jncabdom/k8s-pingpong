@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neo4j
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neo4j
+  template:
+    metadata:
+      labels:
+        app: neo4j
+    spec:
+      containers:
+      - name: neo4j
+        image: neo4j:4.3.3
+        ports:
+        - containerPort: 7474  # HTTP
+        - containerPort: 7687  # Bolt
+        env:
+        - name: NEO4J_AUTH
+          value: "neo4j/password"  # Replace 'password' with your desired password
+        volumeMounts:
+        - name: neo4j-data
+          mountPath: /data
+      volumes:
+      - name: neo4j-data
+        persistentVolumeClaim:
+          claimName: neo4j-pvc
+
