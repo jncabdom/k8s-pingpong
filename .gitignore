@@ -1,0 +1,3 @@
+venv
+k8s/deployments/service*-deployment.yaml
+k8s/services/service*-service.yaml
