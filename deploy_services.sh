@@ -5,6 +5,7 @@ kubectl delete services --all
 
 docker build -t service:latest ./service-app
 docker build -t tracker:latest ./tracking-api
+docker build -t sidecar:latest ./sidecar-app
 
 kubectl apply -f "k8s/services/neo4j-pvc.yaml"
 kubectl apply -f "k8s/deployments/neo4j-deployment.yaml"

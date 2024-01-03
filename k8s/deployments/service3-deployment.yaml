@@ -16,5 +16,16 @@ spec:
       - name: service3
         image: service:latest
         imagePullPolicy: IfNotPresent
+        env:
+          - name: SERVICE_NAME
+            value: service3
         ports:
         - containerPort: 5000
+      - name: service3-sidecar
+        image: sidecar:latest
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: SERVICE_NAME
+            value: service3
+        ports:
+        - containerPort: 5001

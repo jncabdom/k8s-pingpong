@@ -13,8 +13,10 @@ driver = GraphDatabase.driver(uri, auth=(username, password))
 
 def create_ping(tx, origin, destiny, timeStamp):
     query = """
-    CREATE (p:Ping {origin: $origin, destiny: $destiny, timeStamp: $timeStamp})
-    RETURN p.origin AS origin, p.destiny AS destiny, p.timeStamp AS timeStamp
+    MERGE (a:Service {name: $origin})
+    MERGE (b:Service {name: $destiny})
+    CREATE (a)-[r:PINGED {timeStamp: $timeStamp}]->(b)
+    RETURN a.name AS origin, b.name AS destiny, r.timeStamp AS timeStamp
     """
     result = tx.run(query, origin=origin, destiny=destiny, timeStamp=timeStamp)
     return result.single()
@@ -25,6 +27,8 @@ def record_ping():
     origin = data['origin']
     destiny = data['destiny']
     timeStamp = data.get('timeStamp', datetime.utcnow().isoformat())
+
+    print(f"Registering ping between [${origin}] - [${destiny}]")
 
     try:
         with driver.session() as session:

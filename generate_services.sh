@@ -9,18 +9,19 @@ if ! [[ "$num_services" =~ ^[0-9]+$ ]] ; then
    exit 1
 fi
 
-# Create directories for deployments and services
-mkdir -p k8s/deployments k8s/services
+rm k8s/deployments/service*-deployment.yaml
+rm k8s/services/service*-service.yaml
 
 # Create or clear existing hosts.txt file
-> k8s/hosts.txt
+> service-app/hosts.txt
 
 # Loop to create deployment and service files and populate hosts.txt
 for i in $(seq 1 $num_services); do
     service_name="service$i"
+    sidecar_name="${service_name}-sidecar"
 
     # Add service name to hosts.txt
-    echo $service_name >> k8s/hosts.txt
+    echo $service_name >> service-app/hosts.txt
 
     # Generate Deployment YAML
     cat <<EOF > "k8s/deployments/${service_name}-deployment.yaml"
@@ -42,8 +43,19 @@ spec:
       - name: $service_name
         image: service:latest
         imagePullPolicy: IfNotPresent
+        env:
+          - name: SERVICE_NAME
+            value: $service_name
         ports:
         - containerPort: 5000
+      - name: $service_name-sidecar
+        image: sidecar:latest
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: SERVICE_NAME
+            value: $service_name
+        ports:
+        - containerPort: 5001
 EOF
 
     # Generate Service YAML
