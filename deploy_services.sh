@@ -1,8 +1,5 @@
 #!/bin/bash
 
-kubectl delete deployments --all
-kubectl delete services --all
-
 docker build -t service:latest ./service-app
 docker build -t tracker:latest ./tracking-api
 docker build -t sidecar:latest ./sidecar-app

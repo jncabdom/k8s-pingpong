@@ -12,6 +12,15 @@ app = Flask(__name__)
 def get_hosts():
     with open('hosts.txt', 'r') as file:
         return [line.strip() for line in file if line.strip()]
+    
+num_targets = int(os.getenv('NUM_TARGETS', 1))
+
+# Function to choose multiple random targets
+def choose_random_targets(targets, num_targets):
+    if num_targets >= len(targets):
+        return targets
+    else:
+        return random.sample(targets, num_targets)
 
 # Get list of hosts
 hosts = get_hosts()
@@ -24,11 +33,12 @@ print(f"CURRENT HOSTNAME IS: {current_hostname}")
 targets = [host for host in hosts if host != current_service]
 
 # Choose a random target for the entire lifecycle of the app
-target_service = random.choice(targets) if targets else None
+target_services = choose_random_targets(targets, num_targets) if targets else []
 
-def ping_target_continuously():
-    print(f"[{current_hostname}] Background thread started, targeting {target_service}")
+def ping_targets_continuously():
+    print(f"[{current_hostname}] Background thread started, targeting {target_services}")
     while True:
+        target_service = random.choice(target_services) if target_services else None
         print(f"[{current_hostname}] Attempting to send ping to {target_service}")
         try:
             response = requests.post(f'http://{target_service}:5000/ping', json={"origin": current_service})
@@ -53,7 +63,7 @@ def ping():
     return jsonify({"message": "Pong!"})
 
 if __name__ == '__main__':
-    if target_service:
+    if target_services:
         print(f"[{current_hostname}] Starting background thread for pinging")
-        threading.Thread(target=ping_target_continuously, daemon=True).start()
+        threading.Thread(target=ping_targets_continuously, daemon=True).start()
     app.run(debug=False, host='0.0.0.0', port=5000)

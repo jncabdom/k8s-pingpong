@@ -2,6 +2,7 @@
 
 # Ask for user input on the number of services
 read -p "Enter the number of services to create: " num_services
+read -p "Enter the number of targets for each service to have: " num_targets
 
 # Check if the input is an integer
 if ! [[ "$num_services" =~ ^[0-9]+$ ]] ; then
@@ -9,8 +10,10 @@ if ! [[ "$num_services" =~ ^[0-9]+$ ]] ; then
    exit 1
 fi
 
-rm k8s/deployments/service*-deployment.yaml
-rm k8s/services/service*-service.yaml
+if ! [[ "$num_targets" =~ ^[0-9]+$ ]] ; then
+   echo "Error: The number of targets must be an integer."
+   exit 1
+fi
 
 # Create or clear existing hosts.txt file
 > service-app/hosts.txt
@@ -46,6 +49,8 @@ spec:
         env:
           - name: SERVICE_NAME
             value: $service_name
+          - name: NUM_TARGETS
+            value: "$num_targets"
         ports:
         - containerPort: 5000
       - name: $service_name-sidecar
