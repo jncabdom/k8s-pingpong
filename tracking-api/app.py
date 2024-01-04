@@ -1,38 +1,38 @@
 from flask import Flask, request, jsonify
 from neo4j import GraphDatabase
-from datetime import datetime
 import os
 
 app = Flask(__name__)
 
-# Configure Neo4j connection
+# Neo4j connection configuration
 uri = os.getenv('NEO4J_URI', "bolt://192.168.49.2:30687")
 username = os.getenv('NEO4J_USER', "neo4j")
 password = os.getenv('NEO4J_PASSWORD', "password")
 driver = GraphDatabase.driver(uri, auth=(username, password))
 
-def create_ping(tx, origin, destiny, timeStamp):
+def update_ping_count(tx, origin, target):
     query = """
     MERGE (a:Service {name: $origin})
-    MERGE (b:Service {name: $destiny})
-    CREATE (a)-[r:PINGED {timeStamp: $timeStamp}]->(b)
-    RETURN a.name AS origin, b.name AS destiny, r.timeStamp AS timeStamp
+    MERGE (b:Service {name: $target})
+    MERGE (a)-[r:PINGED]->(b)
+    ON CREATE SET r.count = 1
+    ON MATCH SET r.count = r.count + 1
+    RETURN a.name AS origin, b.name AS target, r.count AS count
     """
-    result = tx.run(query, origin=origin, destiny=destiny, timeStamp=timeStamp)
+    result = tx.run(query, origin=origin, target=target)
     return result.single()
 
 @app.route('/pings', methods=['POST'])
 def record_ping():
     data = request.json
     origin = data['origin']
-    destiny = data['destiny']
-    timeStamp = data.get('timeStamp', datetime.utcnow().isoformat())
+    target = data['target']
 
-    print(f"Registering ping between [${origin}] - [${destiny}]")
+    print(f"Registering ping between [${origin}] - [${target}]")
 
     try:
         with driver.session() as session:
-            ping = session.write_transaction(create_ping, origin, destiny, timeStamp)
+            ping = session.write_transaction(update_ping_count, origin, target)
             if ping:
                 return jsonify(ping), 201
             else:

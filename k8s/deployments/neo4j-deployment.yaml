@@ -20,7 +20,7 @@ spec:
         - containerPort: 7687  # Bolt
         env:
         - name: NEO4J_AUTH
-          value: "neo4j/password"  # Replace 'password' with your desired password
+          value: "neo4j/password"
         volumeMounts:
         - name: neo4j-data
           mountPath: /data

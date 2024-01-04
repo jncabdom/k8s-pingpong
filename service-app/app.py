@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+import numpy as np
 import requests
 import random
 import threading
@@ -23,38 +24,38 @@ def choose_random_targets(targets, num_targets):
 # Get the current hostname (service name)
 current_hostname = socket.gethostname()
 current_service = os.getenv('SERVICE_NAME', 'default_service')
-print(f"CURRENT HOSTNAME IS: {current_hostname}")
+
 # Remove the current service from the list of targets
 targets = [service for service in services if service != current_service]
 
 # Choose a random target for the entire lifecycle of the app
 target_services = choose_random_targets(targets, num_targets) if targets else []
 
+# Assign random weights to each target service
+weights = np.random.random(len(target_services))
+weights /= weights.sum()  # Normalize to make the sum of weights equal to 1
+
+target_service_weights = dict(zip(target_services, weights))
+print(f"Target services with weights: {target_service_weights}")
+
+def weighted_random_choice(choices):
+    services, probs = zip(*choices.items())
+    return np.random.choice(services, p=probs)
+
 def ping_targets_continuously():
-    print(f"[{current_hostname}] Background thread started, targeting {target_services}")
+    sidecar_url = f"http://localhost:5001/ping"
     while True:
-        target_service = random.choice(target_services) if target_services else None
+        target_service = weighted_random_choice(target_service_weights)
         print(f"[{current_hostname}] Attempting to send ping to {target_service}")
         try:
-            response = requests.post(f'http://{target_service}:5000/ping', json={"origin": current_service})
-            print(f"[{current_hostname}] Received response from {target_service}: {response.status_code}")
+            response = requests.post(sidecar_url, json={"target": target_service})
+            print(f"[{current_hostname}] Received response from sidecar for {target_service}: {response.status_code}")
         except requests.exceptions.RequestException as e:
-            print(f"[{current_hostname}] Error pinging {target_service}: {e}")
+            print(f"[{current_hostname}] Error pinging sidecar for {target_service}: {e}")
         time.sleep(random.randint(5, 10))
-
-def notify_sidecar(origin):
-    sidecar_url = f"http://localhost:5001/notify"
-    payload = {"origin": origin}
-    try:
-        requests.post(sidecar_url, json=payload)
-    except Exception as e:
-        print(f"Error notifying sidecar: {e}")
 
 @app.route('/ping', methods=['POST'])
 def ping():
-    data = request.json
-    origin = data.get('origin', 'unknown')
-    notify_sidecar(origin)
     return jsonify({"message": "Pong!"})
 
 if __name__ == '__main__':
