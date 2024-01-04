@@ -15,16 +15,10 @@ if ! [[ "$num_targets" =~ ^[0-9]+$ ]] ; then
    exit 1
 fi
 
-# Create or clear existing hosts.txt file
-> service-app/hosts.txt
-
-# Loop to create deployment and service files and populate hosts.txt
+# Loop to create deployment and service files
 for i in $(seq 1 $num_services); do
     service_name="service$i"
     sidecar_name="${service_name}-sidecar"
-
-    # Add service name to hosts.txt
-    echo $service_name >> service-app/hosts.txt
 
     # Generate Deployment YAML
     cat <<EOF > "k8s/deployments/${service_name}-deployment.yaml"
@@ -51,6 +45,8 @@ spec:
             value: $service_name
           - name: NUM_TARGETS
             value: "$num_targets"
+          - name: SERVICE_NUM
+            value: "$num_services"
         ports:
         - containerPort: 5000
       - name: $service_name-sidecar

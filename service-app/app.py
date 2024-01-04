@@ -7,13 +7,11 @@ import socket
 import os
 
 app = Flask(__name__)
-
-# Function to read hosts from file
-def get_hosts():
-    with open('hosts.txt', 'r') as file:
-        return [line.strip() for line in file if line.strip()]
     
 num_targets = int(os.getenv('NUM_TARGETS', 1))
+service_num = int(os.getenv('SERVICE_NUM', 1))
+
+services = [f'service{i}' for i in range(1, service_num + 1)]
 
 # Function to choose multiple random targets
 def choose_random_targets(targets, num_targets):
@@ -22,15 +20,12 @@ def choose_random_targets(targets, num_targets):
     else:
         return random.sample(targets, num_targets)
 
-# Get list of hosts
-hosts = get_hosts()
-
 # Get the current hostname (service name)
 current_hostname = socket.gethostname()
 current_service = os.getenv('SERVICE_NAME', 'default_service')
 print(f"CURRENT HOSTNAME IS: {current_hostname}")
 # Remove the current service from the list of targets
-targets = [host for host in hosts if host != current_service]
+targets = [service for service in services if service != current_service]
 
 # Choose a random target for the entire lifecycle of the app
 target_services = choose_random_targets(targets, num_targets) if targets else []
